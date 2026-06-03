@@ -5,7 +5,6 @@ import { Category } from "../domain/category.entity"
 @Injectable()
 export class GetCategoriesUseCase {
     constructor(
-       
         @Inject("ICategoriesRepository")
         private readonly categoriesRepository: ICategoriesRepository,
     ) {}
