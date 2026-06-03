@@ -9,7 +9,7 @@ export class PostsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly createPostUseCase: CreatePostUseCase,
-        private readonly getFeedPostsUseCase: GetFeedPostsUseCase,  
+        private readonly getFeedPostsUseCase: GetFeedPostsUseCase,
     ) {}
 
     async create(data: CreatePostDto) {

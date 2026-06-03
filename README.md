@@ -53,3 +53,79 @@ Comandos útiles:
 
 - `make stop` para detener el contenedor
 - `make logs` para ver logs en tiempo real
+
+---
+
+# Refactorización a Clean Architecture - INFO1156
+
+## 1. Diagnóstico y Falencias Identificadas
+Durante el análisis inicial del código fuente del servidor (basado en NestJS y Prisma), nuestro equipo identificó las siguientes falencias arquitectónicas que violaban los principios SOLID y dificultaban el mantenimiento:
+
+* **Alto Acoplamiento con la Infraestructura (Violación de DIP):** Los servicios principales de negocio (ej. `PostsService`, `ModerationService`) dependían e importaban directamente `PrismaService`. Esto ataba las reglas de negocio al ORM, haciendo imposible cambiar de base de datos sin reescribir la lógica central.
+* **Falta de Capa de Dominio (Violación de SRP):** No existían entidades puras de negocio. Se estaban utilizando los modelos autogenerados por Prisma y los DTOs de los controladores como si fueran objetos de dominio. Reglas matemáticas críticas, como la generación de expresiones regulares *fuzzy* para moderación, estaban mezcladas con consultas SQL.
+* **Servicios "Dios" y Efectos Secundarios Ocultos:** Las interacciones (Likes y Comentarios) modificaban la relevancia del Feed mediante recálculos implícitos y acoplados, en lugar de estar orquestados por Casos de Uso claramente definidos.
+
+## 2. Solución Aplicada (Puntos de Refactorización)
+Para solucionar esto, aplicamos los principios de **Clean Architecture**, dividiendo el código en capas concéntricas con la regla estricta de que las dependencias solo pueden apuntar hacia adentro:
+
+1. **Capa de Dominio (Domain):** Creamos clases TypeScript puras (ej. `Post`, `ModerationRule`) y contratos/interfaces (ej. `IPostRepository`, `IForbiddenWordRepository`). Aquí reside la lógica de negocio sin saber que NestJS o Prisma existen.
+2. **Capa de Aplicación (Use Cases):** Separamos los servicios masivos en Casos de Uso independientes que cumplen con el Principio de Responsabilidad Única (`CreatePostUseCase`, `ModerateContentUseCase`, `AddLikeUseCase`). Estos actúan como orquestadores e inyectan las interfaces del dominio, no implementaciones concretas.
+3. **Capa de Infraestructura (Adapters):** Implementamos los repositorios concretos (`PrismaPostRepository`, `PrismaForbiddenWordRepository`) que satisfacen las interfaces del dominio utilizando Prisma. 
+
+## 3. Diagrama de Arquitectura Resultante
+
+A continuación se presenta un diagrama de clases resumido que demuestra la Inversión de Dependencias lograda en el módulo de moderación y publicaciones:
+
+```mermaid
+classDiagram
+    %% Capa de Infraestructura (Externa)
+    class PrismaForbiddenWordRepository {
+        - prisma: PrismaService
+        + findAllWords(): Promise~string[]~
+    }
+    class PrismaPostRepository {
+        - prisma: PrismaService
+        + create(data): Promise~Post~
+    }
+
+    %% Capa de Dominio (Interna - Pura)
+    namespace Domain {
+        class IForbiddenWordRepository {
+            <<Interface>>
+            + findAllWords()* Promise~string[]~
+        }
+        class IPostRepository {
+            <<Interface>>
+            + create(data)* Promise~Post~
+        }
+        class ModerationRule {
+            + buildFuzzyRegex(word: string)$ RegExp
+            + containsForbiddenWord(text: string, words: string[])$ boolean
+        }
+        class Post {
+            + id: string
+            + title: string
+            + categoryId: string
+        }
+    }
+
+    %% Capa de Aplicación (Casos de Uso)
+    class ModerateContentUseCase {
+        - forbiddenWordRepo: IForbiddenWordRepository
+        + execute(text: string): Promise~boolean~
+    }
+    class CreatePostUseCase {
+        - postRepository: IPostRepository
+        - moderationUseCase: ModerateContentUseCase
+        + execute(data: CreatePostDto)
+    }
+
+    %% Relaciones (Clean Architecture)
+    PrismaForbiddenWordRepository ..|> IForbiddenWordRepository : Implements
+    PrismaPostRepository ..|> IPostRepository : Implements
+    
+    ModerateContentUseCase --> IForbiddenWordRepository : Uses (Injection)
+    ModerateContentUseCase ..> ModerationRule : Uses
+    
+    CreatePostUseCase --> IPostRepository : Uses (Injection)
+    CreatePostUseCase --> ModerateContentUseCase : Orquestrates
