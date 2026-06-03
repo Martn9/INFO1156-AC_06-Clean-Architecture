@@ -53,3 +53,38 @@ Comandos útiles:
 
 - `make stop` para detener el contenedor
 - `make logs` para ver logs en tiempo real
+
+
+## Aplicación de Clean Architecture: Casos de Uso para Publicaciones
+
+**Implementado por:** Gerlac
+
+### Archivos modificados
+
+* `src/posts/posts.service.ts`
+* `src/posts/posts.module.ts`
+
+### Archivos creados
+
+* `src/posts/use-cases/create-post.use-case.ts`
+* `src/posts/use-cases/get-feed-posts.use-case.ts`
+
+### Problema
+
+El servicio `PostsService` contenía lógica de negocio relacionada tanto con la creación de publicaciones como con la construcción del feed. Esto generaba una concentración de responsabilidades en una sola clase, dificultando el mantenimiento y la evolución de la aplicación.
+
+### Solución
+
+Se implementaron dos casos de uso independientes:
+
+* `CreatePostUseCase`: encargado de la moderación y creación de publicaciones.
+* `GetFeedPostsUseCase`: encargado de obtener y construir la información enriquecida del feed.
+
+`PostsService` pasó a actuar como intermediario, delegando la ejecución de estas operaciones a sus respectivos casos de uso.
+
+### Beneficios
+
+* Mejor separación de responsabilidades.
+* Mayor alineación con los principios de Clean Architecture.
+* Lógica de negocio encapsulada en componentes específicos.
+* Código más fácil de mantener y extender.
