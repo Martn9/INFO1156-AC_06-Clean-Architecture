@@ -53,3 +53,43 @@ Comandos útiles:
 
 - `make stop` para detener el contenedor
 - `make logs` para ver logs en tiempo real
+
+## Aplicación de Clean Architecture: Migración Completa de Categorías
+Implementado por: Cristoper parra
+
+Archivos modificados
+src/categories/categories.service.ts
+
+src/categories/categories.module.ts
+
+Archivos creados
+src/categories/domain/category.entity.ts
+
+src/categories/domain/categories.repository.interface.ts
+
+src/categories/application/get-categories.use-case.ts
+
+src/categories/infrastructure/prisma-categories.repository.ts
+
+## Problema
+El módulo de categorías presentaba un alto acoplamiento con la infraestructura, el servicio CategoriesService consumia directamente el cliente de Prisma para interactuar con la base de datos y manejar reglas de ordenamiento, esto violaba las capas de Clean Architecture, ya que la lógica de aplicación dependía explícitamente de un ORM externo dificultando la modularidad y el testeo aislado.
+
+## Solución
+Se realizó una migración estructurada dividiendo el módulo en capas independientes:
+
+Dominio: Se definió una entidad pura (Category) y un contrato/puerto (ICategoriesRepository) para aislar el concepto de negocio de cualquier tecnología de persistencia.
+
+Aplicación: Se creó el caso de uso GetCategoriesUseCase encargado de orquestar la lógica de obtención de categorías dependiendo únicamente de la interfaz del dominio.
+
+Infraestructura: Se implementó el adaptador concreto PrismaCategoriesRepository encargado de resolver la comunicación física con Prisma y mantener el orden alfabetico original.
+
+El CategoriesService fue refactorizado para actuar unicamente como un intermediario que delega la ejecución al caso de uso correspondiente.
+
+## Beneficios
+Desacoplamiento total de la base de datos en las capas de negocio (Principio de Inversión de Dependencias).
+
+Estructura modular, escalable y alineada al 100% con las directrices del Core de la aplicación.
+
+Mayor facilidad para realizar pruebas unitarias (Mocking) al depender de un contrato (interface).
+
+Cumplimiento del Principio de Responsabilidad unica (SRP) en el servicio y controladores.

@@ -1,11 +1,13 @@
 import { Injectable } from "@nestjs/common"
-import { PrismaService } from "@/shared/prisma.service"
+import { GetCategoriesUseCase } from "./application/get-categories.use-case"
 
 @Injectable()
 export class CategoriesService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly getCategoriesUseCase: GetCategoriesUseCase,
+    ) {}
 
-    findAll() {
-        return this.prisma.category.findMany({ orderBy: { name: "asc" } })
+    async findAll() {
+        return this.getCategoriesUseCase.execute()
     }
 }
