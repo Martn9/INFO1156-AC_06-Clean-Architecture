@@ -7,11 +7,3 @@ export class CommentEntity {
     public readonly createdAt: Date = new Date(),
   ) {}
 }
-
-// src/comments/domain/interfaces/comment.repository.interface.ts
-export const COMMENT_REPOSITORY = Symbol('COMMENT_REPOSITORY');
-
-export interface ICommentRepository {
-  save(comment: CommentEntity): Promise<void>;
-  findByPostId(postId: string): Promise<CommentEntity[]>;
-}
